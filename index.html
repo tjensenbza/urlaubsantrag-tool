@@ -28,6 +28,7 @@
   </form>
 
   <script>
+    // === KONFIGURATION ===
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -37,6 +38,7 @@
     const EMAILJS_USER_ID = 'Lbr8GkmRKaWI8UFxT';
     emailjs.init(EMAILJS_USER_ID);
 
+    // === ZEITRÄUME HINZUFÜGEN ===
     function addZeitraum() {
       const container = document.getElementById('zeitraeumeContainer');
       const div = document.createElement('div');
@@ -49,6 +51,7 @@
       container.appendChild(div);
     }
 
+    // === FORMULAR SENDEN ===
     document.getElementById('antragForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -63,31 +66,38 @@
         zeitraeume.push({ von, bis });
       });
 
-      const { error } = await supabase
-        .from('urlaubsantraege')
-        .insert([{ vorname, nachname, antragsdatum, zeitraeume }]);
+      try {
+        // === SUPABASE SPEICHERN ===
+        const { data, error } = await supabase
+          .from('urlaubsantraege')
+          .insert([{ vorname, nachname, antragsdatum, zeitraeume }]);
 
-      if (error) {
-        alert('Fehler beim Speichern in Supabase: ' + error.message);
-        return;
-      }
+        if (error) {
+          console.error("Fehler beim Speichern:", error);
+          alert('❌ Fehler beim Speichern in Supabase:\n' + error.message);
+          return;
+        }
 
-      const zeitraeumeText = zeitraeume.length > 0
-        ? zeitraeume.map(z => `${z.von} bis ${z.bis}`).join('\n')
-        : 'Keine angegeben';
+        // === EMAIL SENDEN ===
+        const zeitraeumeText = zeitraeume.length > 0
+          ? zeitraeume.map(z => `${z.von} bis ${z.bis}`).join('\n')
+          : 'Keine angegeben';
 
-      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        vorname,
-        nachname,
-        antragsdatum,
-        zeitraeume: zeitraeumeText
-      }).then(() => {
-        alert('Antrag erfolgreich gestellt!');
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          vorname,
+          nachname,
+          antragsdatum,
+          zeitraeume: zeitraeumeText
+        });
+
+        alert('✅ Antrag erfolgreich gestellt!');
         document.getElementById('antragForm').reset();
         document.getElementById('zeitraeumeContainer').innerHTML = '<h3>Urlaubszeiträume (optional)</h3>';
-      }, (err) => {
-        alert('Fehler beim E-Mail-Versand: ' + err.text);
-      });
+
+      } catch (err) {
+        console.error("Unerwarteter Fehler:", err);
+        alert('Ein unerwarteter Fehler ist aufgetreten:\n' + err.message);
+      }
     });
   </script>
 </body>
