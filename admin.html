@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Urlaubsanträge – Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2em; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Alle Urlaubsanträge</h1>
+  <button onclick="logout()">Logout</button>
+  <table id="antraegeTable">
+    <thead>
+      <tr>
+        <th>Vorname</th>
+        <th>Nachname</th>
+        <th>Antragsdatum</th>
+        <th>Zeiträume</th>
+        <th>Erstellt am</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    if (localStorage.getItem("admin_logged_in") !== "true") {
+      alert("Zugriff verweigert. Bitte zuerst einloggen.");
+      window.location.href = "login.html";
+    }
+
+    const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function ladeAntraege() {
+      const { data, error } = await supabase
+        .from('urlaubsantraege')
+        .select('*')
+        .order('erstellt_am', { ascending: false });
+
+      if (error) {
+        alert("Fehler beim Laden der Daten: " + error.message);
+        return;
+      }
+
+      const tbody = document.querySelector("#antraegeTable tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(eintrag => {
+        const tr = document.createElement("tr");
+        const zeitraeume = (eintrag.zeitraeume || []).map(z => `${z.von} bis ${z.bis}`).join('<br>');
+        tr.innerHTML = `
+          <td>${eintrag.vorname}</td>
+          <td>${eintrag.nachname}</td>
+          <td>${eintrag.antragsdatum}</td>
+          <td>${zeitraeume || '-'}</td>
+          <td>${new Date(eintrag.erstellt_am).toLocaleString('de-DE')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem("admin_logged_in");
+      window.location.href = "login.html";
+    }
+
+    ladeAntraege();
+  </script>
+</body>
+</html>
