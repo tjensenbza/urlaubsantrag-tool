@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; max-width: 400px; margin: auto; }
+    label, input { display: block; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Admin Login</h1>
+  <form onsubmit="handleLogin(event)">
+    <label>Passwort:
+      <input type="password" id="password" required>
+    </label>
+    <button type="submit">Login</button>
+  </form>
+
+  <script>
+    const ADMIN_PASSWORT = "meinGeheimesPasswort123"; // <-- hier ändern
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const entered = document.getElementById("password").value;
+      if (entered === ADMIN_PASSWORT) {
+        localStorage.setItem("admin_logged_in", "true");
+        window.location.href = "admin.html";
+      } else {
+        alert("Falsches Passwort");
+      }
+    }
+  </script>
+</body>
+</html>
