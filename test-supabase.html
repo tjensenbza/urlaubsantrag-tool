@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Supabase Testformular</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2em; max-width: 600px; margin: auto; }
+  </style>
+</head>
+<body>
+  <h1>Supabase Verbindung testen</h1>
+  <p>Dieses Formular schreibt einen Dummy-Eintrag in deine Tabelle <code>urlaubsantraege</code>.</p>
+  <button onclick="supabaseTest()">Testeintrag erstellen</button>
+
+  <pre id="output" style="margin-top: 2em; background: #f0f0f0; padding: 1em;"></pre>
+
+  <script>
+    const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function supabaseTest() {
+      const output = document.getElementById('output');
+      output.textContent = '⏳ Sende Testeintrag...';
+
+      const testEintrag = {
+        vorname: "Test",
+        nachname: "Eintrag",
+        antragsdatum: new Date().toISOString().split('T')[0],
+        zeitraeume: [{ von: "2025-08-15", bis: "2025-08-20" }]
+      };
+
+      const { data, error } = await supabase
+        .from('urlaubsantraege')
+        .insert([testEintrag]);
+
+      if (error) {
+        output.textContent = '❌ Fehler:\n' + JSON.stringify(error, null, 2);
+        console.error(error);
+      } else {
+        output.textContent = '✅ Erfolgreich gespeichert:\n' + JSON.stringify(data, null, 2);
+        console.log(data);
+      }
+    }
+  </script>
+</body>
+</html>
