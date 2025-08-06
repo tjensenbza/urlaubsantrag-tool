@@ -2,16 +2,17 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Urlaubsanträge – Admin</title>
+  <title>Adminbereich – Urlaubsanträge</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body { font-family: sans-serif; padding: 2em; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
     th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+    button { margin-bottom: 1em; }
   </style>
 </head>
 <body>
-  <h1>Alle Urlaubsanträge</h1>
+  <h1>Urlaubsanträge – Admin</h1>
   <button onclick="logout()">Logout</button>
   <table id="antraegeTable">
     <thead>
@@ -27,11 +28,13 @@
   </table>
 
   <script>
+    // Zugriffsschutz
     if (localStorage.getItem("admin_logged_in") !== "true") {
       alert("Zugriff verweigert. Bitte zuerst einloggen.");
       window.location.href = "login.html";
     }
 
+    // Supabase Verbindung
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -43,7 +46,8 @@
         .order('erstellt_am', { ascending: false });
 
       if (error) {
-        alert("Fehler beim Laden der Daten: " + error.message);
+        alert("❌ Fehler beim Laden der Anträge: " + error.message);
+        console.error(error);
         return;
       }
 
@@ -51,16 +55,20 @@
       tbody.innerHTML = "";
 
       data.forEach(eintrag => {
-        const tr = document.createElement("tr");
-        const zeitraeume = (eintrag.zeitraeume || []).map(z => `${z.von} bis ${z.bis}`).join('<br>');
-        tr.innerHTML = `
-          <td>${eintrag.vorname}</td>
-          <td>${eintrag.nachname}</td>
-          <td>${eintrag.antragsdatum}</td>
-          <td>${zeitraeume || '-'}</td>
-          <td>${new Date(eintrag.erstellt_am).toLocaleString('de-DE')}</td>
+        const zeitraeume = (eintrag.zeitraeume || []).map(z =>
+          `${z.von} bis ${z.bis}`
+        ).join('<br>');
+
+        const row = `
+          <tr>
+            <td>${eintrag.vorname}</td>
+            <td>${eintrag.nachname}</td>
+            <td>${eintrag.antragsdatum}</td>
+            <td>${zeitraeume || '-'}</td>
+            <td>${new Date(eintrag.erstellt_am).toLocaleString('de-DE')}</td>
+          </tr>
         `;
-        tbody.appendChild(tr);
+        tbody.insertAdjacentHTML('beforeend', row);
       });
     }
 
