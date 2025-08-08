@@ -5,29 +5,29 @@
   <title>Admin Login</title>
   <style>
     body { font-family: sans-serif; padding: 2em; max-width: 400px; margin: auto; }
-    label, input { display: block; margin-top: 1em; }
+    input { margin-top: 0.5em; padding: 0.5em; width: 100%; }
+    button { margin-top: 1em; padding: 0.5em; width: 100%; }
   </style>
 </head>
 <body>
   <h1>Admin Login</h1>
   <form onsubmit="handleLogin(event)">
-    <label>Passwort:
-      <input type="password" id="password" required>
-    </label>
+    <label for="password">Passwort:</label>
+    <input type="password" id="password" required />
     <button type="submit">Login</button>
   </form>
 
   <script>
-    const ADMIN_PASSWORT = "geheim"; // <-- hier ändern
+    const ADMIN_PASSWORT = "meinGeheimesPasswort123"; // <- anpassen
 
-    function handleLogin(e) {
-      e.preventDefault();
-      const entered = document.getElementById("password").value;
-      if (entered === ADMIN_PASSWORT) {
+    function handleLogin(event) {
+      event.preventDefault();
+      const input = document.getElementById("password").value;
+      if (input === ADMIN_PASSWORT) {
         localStorage.setItem("admin_logged_in", "true");
         window.location.href = "admin.html";
       } else {
-        alert("Falsches Passwort");
+        alert("Falsches Passwort.");
       }
     }
   </script>
