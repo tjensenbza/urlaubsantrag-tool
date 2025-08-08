@@ -5,15 +5,23 @@
   <title>Adminbereich – Urlaubsanträge</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2em; }
+    body { font-family: sans-serif; padding: 2em; max-width: 1000px; margin:auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
-    button { margin-bottom: 1em; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; vertical-align: top; }
+    .toolbar { display:flex; gap: 0.5rem; align-items:center; }
+    .status { margin-top: 1em; padding: .75em; background:#f6f6f6; }
+    .error { color:#b00020; font-weight:600; }
   </style>
 </head>
 <body>
   <h1>Urlaubsanträge – Admin</h1>
-  <button onclick="logout()">Logout</button>
+  <div class="toolbar">
+    <button onclick="reload()">Neu laden</button>
+    <button onclick="logout()">Logout</button>
+    <a href="index.html">Zur Antrag-Seite</a>
+  </div>
+  <div id="status" class="status">Lade Daten…</div>
+
   <table id="antraegeTable">
     <thead>
       <tr>
@@ -34,47 +42,62 @@
       window.location.href = "login.html";
     }
 
-    // Supabase Verbindung
+    // Supabase Verbindung (KORREKT & vollständig)
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     async function ladeAntraege() {
+      setStatus('Lade Daten…');
       const { data, error } = await supabase
         .from('urlaubsantraege')
         .select('*')
         .order('erstellt_am', { ascending: false });
 
-      if (error) {
-        alert("❌ Fehler beim Laden der Anträge: " + error.message);
-        console.error(error);
-        return;
-      }
-
       const tbody = document.querySelector("#antraegeTable tbody");
       tbody.innerHTML = "";
 
+      if (error) {
+        console.error(error);
+        setStatus('❌ <span class="error">Fehler beim Laden: ' + (error.message || 'unbekannt') + '</span>');
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setStatus('ℹ️ Keine Einträge vorhanden.');
+        return;
+      }
+
       data.forEach(eintrag => {
+        const tr = document.createElement("tr");
         const zeitraeume = (eintrag.zeitraeume || []).map(z =>
           `${z.von} bis ${z.bis}`
         ).join('<br>');
 
-        const row = `
-          <tr>
-            <td>${eintrag.vorname}</td>
-            <td>${eintrag.nachname}</td>
-            <td>${eintrag.antragsdatum}</td>
-            <td>${zeitraeume || '-'}</td>
-            <td>${new Date(eintrag.erstellt_am).toLocaleString('de-DE')}</td>
-          </tr>
+        tr.innerHTML = `
+          <td>${eintrag.vorname || ''}</td>
+          <td>${eintrag.nachname || ''}</td>
+          <td>${eintrag.antragsdatum || ''}</td>
+          <td>${zeitraeume || '-'}</td>
+          <td>${eintrag.erstellt_am ? new Date(eintrag.erstellt_am).toLocaleString('de-DE') : ''}</td>
         `;
-        tbody.insertAdjacentHTML('beforeend', row);
+        tbody.appendChild(tr);
       });
+
+      setStatus('✅ ' + data.length + ' Eintrag(e) geladen.');
+    }
+
+    function setStatus(html) {
+      document.getElementById('status').innerHTML = html;
     }
 
     function logout() {
       localStorage.removeItem("admin_logged_in");
       window.location.href = "login.html";
+    }
+
+    function reload() {
+      ladeAntraege();
     }
 
     ladeAntraege();
