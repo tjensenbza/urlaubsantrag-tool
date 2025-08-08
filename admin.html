@@ -6,26 +6,58 @@
   <!-- Supabase SDK v2 (gepinnt) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: sans-serif; padding: 2em; max-width: 1000px; margin:auto; }
+    :root { --card-border:#ddd; --muted:#666; }
+    body { font-family: system-ui, sans-serif; padding: 2em; max-width: 1100px; margin:auto; }
+    h1 { margin-top:0 }
     table { width: 100%; border-collapse: collapse; margin-top: 1em; }
     th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; vertical-align: top; }
-    .toolbar { display:flex; gap: .5rem; align-items:center; }
-    .status { margin-top: 1em; padding: .75em; background:#f6f6f6; border-radius: .5rem; }
+    th:first-child, td:first-child { width: 40px; text-align:center; }
+    .toolbar { display:flex; flex-wrap:wrap; gap: .5rem; align-items:center; margin-bottom:.5rem; }
+    .toolbar button, .toolbar a { padding:.5rem .75rem; border:1px solid #ccc; background:#fff; cursor:pointer; border-radius:.4rem; text-decoration:none; color:#111; }
+    .toolbar button:hover, .toolbar a:hover { background:#f7f7f7; }
+    .status { margin: .75rem 0 0; padding: .75rem; background:#f6f6f6; border-radius: .5rem; }
     .error { color:#b00020; font-weight:600; }
+
+    /* Drucklayout: nur #printArea anzeigen */
+    @media print {
+      body * { visibility: hidden !important; }
+      #printArea, #printArea * { visibility: visible !important; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+      .print-card { page-break-inside: avoid; }
+    }
+
+    /* Karten-Stil für Druck */
+    #printArea { padding: 20px; }
+    .print-header { text-align:center; margin-bottom: 16px; }
+    .print-header .title { font-size: 20px; font-weight: 700; }
+    .print-header .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .print-card { border:1px solid var(--card-border); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .print-row { display:flex; gap:12px; flex-wrap:wrap; }
+    .print-row div { min-width: 220px; }
+    .print-label { font-size: 12px; color: var(--muted); }
+    .print-value { font-size: 14px; font-weight: 600; }
+    .print-zeitraeume { margin-top: 8px; }
+    .print-zeitraeume ul { margin: 6px 0 0 18px; }
   </style>
 </head>
 <body>
   <h1>Urlaubsanträge – Admin</h1>
+
   <div class="toolbar">
     <button onclick="reload()">Neu laden</button>
+    <button onclick="toggleAll(true)">Alle auswählen</button>
+    <button onclick="toggleAll(false)">Auswahl aufheben</button>
+    <button onclick="printSelected()">Auswahl drucken (PDF)</button>
     <button onclick="logout()">Logout</button>
     <a href="index.html">Zur Antrag-Seite</a>
   </div>
+
   <div id="status" class="status">Lade Daten…</div>
 
   <table id="antraegeTable">
     <thead>
       <tr>
+        <th><input type="checkbox" id="checkAll" /></th>
         <th>Vorname</th>
         <th>Nachname</th>
         <th>Antragsdatum</th>
@@ -36,6 +68,9 @@
     <tbody></tbody>
   </table>
 
+  <!-- Versteckter Bereich für Druck -->
+  <div id="printArea" style="display:none"></div>
+
   <script>
     // Zugriffsschutz
     if (localStorage.getItem("admin_logged_in") !== "true") {
@@ -43,10 +78,13 @@
       window.location.href = "login.html";
     }
 
-    // Supabase Verbindung (neuer Variablenname sb, kein Überschreiben)
+    // Supabase Verbindung
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Daten-Cache
+    let cache = [];
 
     async function ladeAntraege() {
       setStatus('Lade Daten…');
@@ -64,28 +102,104 @@
         return;
       }
 
-      if (!data || data.length === 0) {
+      cache = data || [];
+
+      if (!cache.length) {
         setStatus('ℹ️ Keine Einträge vorhanden.');
         return;
       }
 
-      data.forEach(eintrag => {
+      cache.forEach((eintrag, idx) => {
         const tr = document.createElement("tr");
-        const zeitraeume = (eintrag.zeitraeume || []).map(z =>
+        const zeitraeumeHtml = (eintrag.zeitraeume || []).map(z =>
           `${z.von} bis ${z.bis}`
         ).join('<br>');
 
         tr.innerHTML = `
+          <td><input type="checkbox" class="row-check" data-index="${idx}"></td>
           <td>${eintrag.vorname || ''}</td>
           <td>${eintrag.nachname || ''}</td>
           <td>${eintrag.antragsdatum || ''}</td>
-          <td>${zeitraeume || '-'}</td>
+          <td>${zeitraeumeHtml || '-'}</td>
           <td>${eintrag.erstellt_am ? new Date(eintrag.erstellt_am).toLocaleString('de-DE') : ''}</td>
         `;
         tbody.appendChild(tr);
       });
 
-      setStatus('✅ ' + data.length + ' Eintrag(e) geladen.');
+      // Master-Checkbox Logik
+      const checkAll = document.getElementById('checkAll');
+      checkAll.checked = false;
+      checkAll.onchange = () => toggleAll(checkAll.checked);
+
+      setStatus('✅ ' + cache.length + ' Eintrag(e) geladen.');
+    }
+
+    function toggleAll(state) {
+      document.querySelectorAll('.row-check').forEach(cb => cb.checked = state);
+      document.getElementById('checkAll').checked = state;
+    }
+
+    function getSelected() {
+      const selectedIdx = Array.from(document.querySelectorAll('.row-check'))
+        .filter(cb => cb.checked)
+        .map(cb => Number(cb.dataset.index));
+      return selectedIdx.map(i => cache[i]);
+    }
+
+    function printSelected() {
+      const sel = getSelected();
+      if (!sel.length) {
+        alert('Bitte mindestens einen Antrag auswählen.');
+        return;
+      }
+
+      // Druck-HTML bauen
+      const printArea = document.getElementById('printArea');
+      const today = new Date().toLocaleDateString('de-DE');
+      const header = `
+        <div class="print-header">
+          <div class="title">Urlaubsgenehmigungen</div>
+          <div class="sub">Erstellt am ${today}</div>
+        </div>
+      `;
+
+      const body = sel.map(e => {
+        const zeitraeume = (e.zeitraeume || []).map(z => `<li>${z.von} bis ${z.bis}</li>`).join('');
+        return `
+          <div class="print-card">
+            <div class="print-row">
+              <div>
+                <div class="print-label">Vorname</div>
+                <div class="print-value">${e.vorname || ''}</div>
+              </div>
+              <div>
+                <div class="print-label">Nachname</div>
+                <div class="print-value">${e.nachname || ''}</div>
+              </div>
+              <div>
+                <div class="print-label">Antragsdatum</div>
+                <div class="print-value">${e.antragsdatum || ''}</div>
+              </div>
+              <div>
+                <div class="print-label">Erstellt am</div>
+                <div class="print-value">${e.erstellt_am ? new Date(e.erstellt_am).toLocaleString('de-DE') : ''}</div>
+              </div>
+            </div>
+
+            <div class="print-zeitraeume">
+              <div class="print-label">Urlaubszeiträume</div>
+              ${zeitraeume ? `<ul>${zeitraeume}</ul>` : '<div class="print-value">–</div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      printArea.innerHTML = header + body;
+
+      // Sichtbar machen, drucken, danach wieder verstecken
+      printArea.style.display = 'block';
+      window.print();
+      setTimeout(() => { printArea.style.display = 'none'; }, 500);
     }
 
     function setStatus(html) { document.getElementById('status').innerHTML = html; }
