@@ -1,47 +1,32 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Supabase Testformular</title>
+  <meta charset="UTF-8"><title>Supabase Insert Test</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 2em; max-width: 600px; margin: auto; }
-  </style>
+  <style>body{font-family:sans-serif;padding:2em;max-width:700px;margin:auto}pre{background:#f6f6f6;padding:1em;white-space:pre-wrap}</style>
 </head>
 <body>
-  <h1>Supabase Verbindung testen</h1>
-  <p>Dieses Formular schreibt einen Dummy-Eintrag in deine Tabelle <code>urlaubsantraege</code>.</p>
-  <button onclick="supabaseTest()">Testeintrag erstellen</button>
-
-  <pre id="output" style="margin-top: 2em; background: #f0f0f0; padding: 1em;"></pre>
-
+  <h1>Supabase Insert Test</h1>
+  <button onclick="run()">Testeintrag speichern</button>
+  <pre id="out">Bereit.</pre>
   <script>
+    const out = (x)=>document.getElementById('out').textContent = x instanceof Object ? JSON.stringify(x,null,2) : x;
+
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function supabaseTest() {
-      const output = document.getElementById('output');
-      output.textContent = '⏳ Sende Testeintrag...';
-
-      const testEintrag = {
-        vorname: "Test",
-        nachname: "Eintrag",
-        antragsdatum: new Date().toISOString().split('T')[0],
-        zeitraeume: [{ von: "2025-08-15", bis: "2025-08-20" }]
+    async function run(){
+      out('Sende Insert …');
+      const payload = {
+        vorname: 'Test',
+        nachname: 'Eintrag',
+        antragsdatum: new Date().toISOString().slice(0,10),
+        zeitraeume: [{von:'2025-08-10', bis:'2025-08-12'}]
       };
-
-      const { data, error } = await supabase
-        .from('urlaubsantraege')
-        .insert([testEintrag]);
-
-      if (error) {
-        output.textContent = '❌ Fehler:\n' + JSON.stringify(error, null, 2);
-        console.error(error);
-      } else {
-        output.textContent = '✅ Erfolgreich gespeichert:\n' + JSON.stringify(data, null, 2);
-        console.log(data);
-      }
+      const { data, error } = await sb.from('urlaubsantraege').insert([payload]).select('*');
+      if (error) return out({error});
+      out({data});
     }
   </script>
 </body>
