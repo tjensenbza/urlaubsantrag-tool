@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Adminbereich – Urlaubsanträge</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <!-- Supabase SDK v2 (gepinnt) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { font-family: sans-serif; padding: 2em; max-width: 1000px; margin:auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 1em; }
     th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; vertical-align: top; }
-    .toolbar { display:flex; gap: 0.5rem; align-items:center; }
-    .status { margin-top: 1em; padding: .75em; background:#f6f6f6; }
+    .toolbar { display:flex; gap: .5rem; align-items:center; }
+    .status { margin-top: 1em; padding: .75em; background:#f6f6f6; border-radius: .5rem; }
     .error { color:#b00020; font-weight:600; }
   </style>
 </head>
@@ -42,14 +43,14 @@
       window.location.href = "login.html";
     }
 
-    // Supabase Verbindung (KORREKT & vollständig)
+    // Supabase Verbindung (neuer Variablenname sb, kein Überschreiben)
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     async function ladeAntraege() {
       setStatus('Lade Daten…');
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('urlaubsantraege')
         .select('*')
         .order('erstellt_am', { ascending: false });
@@ -87,18 +88,9 @@
       setStatus('✅ ' + data.length + ' Eintrag(e) geladen.');
     }
 
-    function setStatus(html) {
-      document.getElementById('status').innerHTML = html;
-    }
-
-    function logout() {
-      localStorage.removeItem("admin_logged_in");
-      window.location.href = "login.html";
-    }
-
-    function reload() {
-      ladeAntraege();
-    }
+    function setStatus(html) { document.getElementById('status').innerHTML = html; }
+    function logout() { localStorage.removeItem("admin_logged_in"); window.location.href = "login.html"; }
+    function reload() { ladeAntraege(); }
 
     ladeAntraege();
   </script>
