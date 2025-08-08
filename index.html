@@ -3,37 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <title>Urlaubsantrag</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+
+  <!-- Supabase SDK v2 (zuerst laden!) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- EmailJS SDK v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 2em;
-      max-width: 600px;
-      margin: auto;
-    }
-    label {
-      display: block;
-      margin-top: 1em;
-    }
-    .zeitraum {
-      margin-bottom: 1em;
-    }
-    .zeitraum input {
-      margin-right: 0.5em;
-    }
-    .admin-link {
-      text-align: center;
-      margin-top: 3em;
-    }
-    .admin-link a {
-      font-size: 0.9em;
-      color: #888;
-      text-decoration: none;
-    }
-    .admin-link a:hover {
-      text-decoration: underline;
-    }
+    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 700px; margin: auto; }
+    label { display: block; margin-top: 1rem; }
+    .zeitraum { margin: .75rem 0; }
+    .zeitraum input { margin-right: .5rem; }
+    .admin-link { text-align: center; margin-top: 2rem; }
+    .admin-link a { font-size: .9rem; color: #666; text-decoration: none; }
+    .admin-link a:hover { text-decoration: underline; }
+    .status { margin-top: 1rem; padding: .75rem; background: #f6f6f6; border-radius: .5rem; }
   </style>
 </head>
 <body>
@@ -46,28 +30,37 @@
 
     <div id="zeitraeumeContainer">
       <h3>Urlaubszeiträume (optional)</h3>
+      <!-- per Button dynamisch hinzufügen -->
     </div>
-    <button type="button" onclick="addZeitraum()">+ Zeitraum hinzufügen</button><br><br>
+    <button type="button" id="btnAdd">+ Zeitraum hinzufügen</button><br><br>
 
     <button type="submit">Antrag stellen</button>
   </form>
+
+  <div id="status" class="status">Bereit.</div>
 
   <div class="admin-link">
     <a href="login.html">🔐 Zum Adminbereich</a>
   </div>
 
   <script>
-    // === Konfiguration ===
+    // ====== KONFIG ======
     const SUPABASE_URL = 'https://fdsedmqvonfsegyfvqwq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const EMAILJS_SERVICE_ID = 'service_635wmwu';
     const EMAILJS_TEMPLATE_ID = 'template_wbc0yhk';
     const EMAILJS_USER_ID = 'Lbr8GkmRKaWI8UFxT';
     emailjs.init(EMAILJS_USER_ID);
 
-    // === Zeiträume dynamisch hinzufügen ===
+    // ====== UI-Helfer ======
+    const statusBox = document.getElementById('status');
+    const setStatus = (html) => { statusBox.innerHTML = html; };
+    const log = (...args) => console.log('[INDEX]', ...args);
+
+    // ====== Zeiträume dynamisch ======
+    document.getElementById('btnAdd').addEventListener('click', addZeitraum);
     function addZeitraum() {
       const container = document.getElementById('zeitraeumeContainer');
       const div = document.createElement('div');
@@ -80,7 +73,7 @@
       container.appendChild(div);
     }
 
-    // === Formular absenden ===
+    // ====== Submit ======
     document.getElementById('antragForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -88,44 +81,46 @@
       const nachname = document.getElementById('nachname').value.trim();
       const antragsdatum = document.getElementById('antragsdatum').value;
 
-      const zeitraeume = [];
-      document.querySelectorAll('.zeitraum').forEach(div => {
-        const von = div.querySelector('input[name="von"]').value;
-        const bis = div.querySelector('input[name="bis"]').value;
-        zeitraeume.push({ von, bis });
-      });
+      const zeitraeume = Array.from(document.querySelectorAll('.zeitraum')).map(div => ({
+        von: div.querySelector('input[name="von"]').value,
+        bis: div.querySelector('input[name="bis"]').value
+      }));
 
       try {
-        // Supabase: Datensatz speichern
-        const { data, error } = await supabase
+        // 1) Supabase: speichern
+        setStatus('⏳ Speichere in Supabase …');
+        const { data, error } = await sb
           .from('urlaubsantraege')
-          .insert([{ vorname, nachname, antragsdatum, zeitraeume }]);
+          .insert([{ vorname, nachname, antragsdatum, zeitraeume }])
+          .select('*');
+
+        log('Supabase insert response:', { data, error });
 
         if (error) {
-          console.error("Fehler beim Speichern:", error);
-          alert('❌ Fehler beim Speichern in Supabase:\n' + error.message);
+          setStatus('❌ Supabase-Fehler: ' + (error.message || 'Unbekannter Fehler'));
+          alert('Supabase-Fehler: ' + error.message);
           return;
         }
 
-        // EmailJS: E-Mail versenden
-        const zeitraeumeText = zeitraeume.length > 0
+        // 2) EmailJS: Benachrichtigung
+        const zeitraeumeText = zeitraeume.length
           ? zeitraeume.map(z => `${z.von} bis ${z.bis}`).join('\n')
           : 'Keine angegeben';
 
+        setStatus('📧 Sende E-Mail …');
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-          vorname,
-          nachname,
-          antragsdatum,
-          zeitraeume: zeitraeumeText
+          vorname, nachname, antragsdatum, zeitraeume: zeitraeumeText
         });
 
-        alert('✅ Antrag erfolgreich gestellt!');
+        setStatus('✅ Antrag gespeichert & E-Mail gesendet.');
+        // Formular zurücksetzen
         document.getElementById('antragForm').reset();
         document.getElementById('zeitraeumeContainer').innerHTML = '<h3>Urlaubszeiträume (optional)</h3>';
 
       } catch (err) {
-        console.error("Fehler im Formularprozess:", err);
-        alert('Ein unerwarteter Fehler ist aufgetreten:\n' + err.message);
+        console.error(err);
+        setStatus('❌ Unerwarteter Fehler: ' + (err?.message || err));
+        alert('Unerwarteter Fehler: ' + (err?.message || err));
       }
     });
   </script>
