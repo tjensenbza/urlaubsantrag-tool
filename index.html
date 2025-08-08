@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Urlaubsantrag</title>
 
-  <!-- Supabase SDK v2 (zuerst laden!) -->
+  <!-- Supabase SDK v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- EmailJS SDK v4 -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -30,7 +30,6 @@
 
     <div id="zeitraeumeContainer">
       <h3>Urlaubszeiträume (optional)</h3>
-      <!-- per Button dynamisch hinzufügen -->
     </div>
     <button type="button" id="btnAdd">+ Zeitraum hinzufügen</button><br><br>
 
@@ -57,7 +56,6 @@
     // ====== UI-Helfer ======
     const statusBox = document.getElementById('status');
     const setStatus = (html) => { statusBox.innerHTML = html; };
-    const log = (...args) => console.log('[INDEX]', ...args);
 
     // ====== Zeiträume dynamisch ======
     document.getElementById('btnAdd').addEventListener('click', addZeitraum);
@@ -87,14 +85,12 @@
       }));
 
       try {
-        // 1) Supabase: speichern
+        // 1) In Supabase speichern
         setStatus('⏳ Speichere in Supabase …');
         const { data, error } = await sb
           .from('urlaubsantraege')
           .insert([{ vorname, nachname, antragsdatum, zeitraeume }])
           .select('*');
-
-        log('Supabase insert response:', { data, error });
 
         if (error) {
           setStatus('❌ Supabase-Fehler: ' + (error.message || 'Unbekannter Fehler'));
@@ -102,7 +98,7 @@
           return;
         }
 
-        // 2) EmailJS: Benachrichtigung
+        // 2) E-Mail senden
         const zeitraeumeText = zeitraeume.length
           ? zeitraeume.map(z => `${z.von} bis ${z.bis}`).join('\n')
           : 'Keine angegeben';
@@ -113,7 +109,6 @@
         });
 
         setStatus('✅ Antrag gespeichert & E-Mail gesendet.');
-        // Formular zurücksetzen
         document.getElementById('antragForm').reset();
         document.getElementById('zeitraeumeContainer').innerHTML = '<h3>Urlaubszeiträume (optional)</h3>';
 
