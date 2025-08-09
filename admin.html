@@ -6,7 +6,7 @@
   <!-- Supabase SDK v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { --card-border:#ddd; --muted:#666; }
+    :root { --card-border:#ddd; --muted:#666; --blue:#004b9b; }
     body { font-family: system-ui, sans-serif; padding: 2em; max-width: 1100px; margin:auto; }
     h1 { margin-top:0 }
     table { width: 100%; border-collapse: collapse; margin-top: 1em; }
@@ -31,7 +31,7 @@
 
     #printArea { padding: 20px; }
     .print-header { text-align:center; margin-bottom: 16px; }
-    .print-header img { max-height: 50px; margin-bottom: 8px; }
+    .print-header .firm-name { font-size: 18px; font-weight: bold; color: var(--blue); margin-bottom: 8px; }
     .print-header .title { font-size: 20px; font-weight: 700; }
     .print-header .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
     .print-card { border:1px solid var(--card-border); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
@@ -159,8 +159,7 @@
         return `
           <div class="print-card">
             <div class="print-header">
-              <!-- Logo: Datei semco_logo.png im selben Ordner wie admin.html ablegen -->
-              <img src="semco_logo.png" alt="SEMCO Logo">
+              <div class="firm-name">Semco Glasdesign GmbH Co. KG</div>
               <div class="title">Urlaubsgenehmigung</div>
               <div class="sub">Erstellt am ${today}</div>
             </div>
