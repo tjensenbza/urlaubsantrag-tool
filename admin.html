@@ -22,11 +22,15 @@
       body * { visibility: hidden !important; }
       #printArea, #printArea * { visibility: visible !important; }
       #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-      .print-card { page-break-after: always; } /* Jede Karte neue Seite */
+      .print-card {
+        page-break-after: always; /* älterer Standard */
+        break-after: page;        /* moderner Standard */
+      }
     }
 
     #printArea { padding: 20px; }
     .print-header { text-align:center; margin-bottom: 16px; }
+    .print-header img { max-height: 50px; margin-bottom: 8px; }
     .print-header .title { font-size: 20px; font-weight: 700; }
     .print-header .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
     .print-card { border:1px solid var(--card-border); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
@@ -148,17 +152,17 @@
 
       const printArea = document.getElementById('printArea');
       const today = new Date().toLocaleDateString('de-DE');
-      const header = `
-        <div class="print-header">
-          <div class="title">Urlaubsgenehmigungen</div>
-          <div class="sub">Erstellt am ${today}</div>
-        </div>
-      `;
 
       const body = sel.map(e => {
         const zeitraeume = (e.zeitraeume || []).map(z => `<li>${z.von} bis ${z.bis}</li>`).join('');
         return `
           <div class="print-card">
+            <div class="print-header">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg" alt="Logo">
+              <div class="title">Urlaubsgenehmigung</div>
+              <div class="sub">Erstellt am ${today}</div>
+            </div>
+
             <div class="print-row">
               <div>
                 <div class="print-label">Vorname</div>
@@ -195,7 +199,7 @@
         `;
       }).join('');
 
-      printArea.innerHTML = header + body;
+      printArea.innerHTML = body;
       printArea.style.display = 'block';
       window.print();
       setTimeout(() => { printArea.style.display = 'none'; }, 500);
